@@ -19,12 +19,12 @@ from config import APP_NAME, APP_VERSION, APP_WIDTH, APP_HEIGHT, DEFAULT_CURRENC
 
 class AddAssetDialog(ctk.CTkToplevel):
     """Диалог добавления актива"""
-    
+
     def __init__(self, parent, asset_type: str = None, on_add: callable = None):
         super().__init__(parent)
-        
+
         self.on_add = on_add
-        
+
         # Если тип не указан, показываем выбор
         if asset_type is None:
             self.title("Добавить актив")
@@ -38,18 +38,18 @@ class AddAssetDialog(ctk.CTkToplevel):
                 "stocks": "Добавить акцию"
             }
             self.title(titles.get(asset_type, "Добавить актив"))
-        
+
         self.geometry("400x350")
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()
-        
+
         # Цвета
         self.light_text = "#000000"
         self.dark_text = "#FFFFFF"
-        
+
         self._create_widgets()
-    
+
     def _create_widgets(self):
         """Создание элементов"""
         # Если тип актива не выбран, показываем выбор типа
@@ -60,7 +60,7 @@ class AddAssetDialog(ctk.CTkToplevel):
                 font=ctk.CTkFont(size=18, weight="bold")
             )
             title.pack(pady=20)
-            
+
             # Кнопки выбора типа
             ctk.CTkButton(
                 self,
@@ -68,47 +68,47 @@ class AddAssetDialog(ctk.CTkToplevel):
                 command=lambda: self._select_type("currency"),
                 width=300
             ).pack(pady=10)
-            
+
             ctk.CTkButton(
                 self,
                 text="₿ Криптовалюта",
                 command=lambda: self._select_type("crypto"),
                 width=300
             ).pack(pady=10)
-            
+
             ctk.CTkButton(
                 self,
                 text="📈 Акция",
                 command=lambda: self._select_type("stocks"),
                 width=300
             ).pack(pady=10)
-            
+
             return
-        
+
         # Поле ввода
         input_frame = ctk.CTkFrame(self, fg_color="transparent")
         input_frame.pack(fill="x", padx=20, pady=20)
-        
+
         ctk.CTkLabel(
             input_frame,
             text="Код/Символ:",
             font=ctk.CTkFont(size=14)
         ).pack(anchor="w")
-        
+
         self.symbol_entry = ctk.CTkEntry(
             input_frame,
             placeholder_text="Например: USD, BTC, AAPL",
             width=300
         )
         self.symbol_entry.pack(fill="x", pady=5)
-        
+
         # Подсказка
         hints = {
             "currency": "Примеры: USD, EUR, CNY, GBP",
             "crypto": "Примеры: bitcoin, ethereum, solana",
             "stocks": "Примеры: AAPL, GOOGL, TSLA, GAZP.ME"
         }
-        
+
         hint_label = ctk.CTkLabel(
             self,
             text=hints.get(self.asset_type, ""),
@@ -116,11 +116,11 @@ class AddAssetDialog(ctk.CTkToplevel):
             text_color="gray"
         )
         hint_label.pack(pady=5)
-        
+
         # Кнопки
         buttons_frame = ctk.CTkFrame(self, fg_color="transparent")
         buttons_frame.pack(pady=20)
-        
+
         add_btn = ctk.CTkButton(
             buttons_frame,
             text="Добавить",
@@ -128,7 +128,7 @@ class AddAssetDialog(ctk.CTkToplevel):
             width=120
         )
         add_btn.pack(side="left", padx=10)
-        
+
         cancel_btn = ctk.CTkButton(
             buttons_frame,
             text="Отмена",
@@ -138,7 +138,7 @@ class AddAssetDialog(ctk.CTkToplevel):
             width=120
         )
         cancel_btn.pack(side="left", padx=10)
-    
+
     def _select_type(self, asset_type: str):
         """Выбор типа актива"""
         self.asset_type = asset_type
@@ -153,7 +153,7 @@ class AddAssetDialog(ctk.CTkToplevel):
         }
         self.title(titles.get(asset_type, "Добавить актив"))
         self._create_widgets()
-    
+
     def _add_asset(self):
         """Добавление актива"""
         symbol = self.symbol_entry.get().strip()
@@ -164,47 +164,48 @@ class AddAssetDialog(ctk.CTkToplevel):
 
 class MainWindow(ctk.CTk):
     """Главное окно приложения"""
-    
+
     def __init__(self):
         super().__init__()
-        
+
         self.title(f"{APP_NAME} v{APP_VERSION}")
         self.geometry(f"{APP_WIDTH}x{APP_HEIGHT}")
         self.minsize(1000, 700)
-        
+
         # Инициализация сервисов
         self.db = DatabaseManager()
         self.currency_service = CurrencyService()
         self.crypto_service = CryptoService()
         self.stock_service = StockService()
-        
+
         # Цвета
         self.light_text = "#000000"
         self.dark_text = "#FFFFFF"
-        
+
         # Настройка темы
         self._apply_theme()
-        
+
         # Создание интерфейса
         self._create_sidebar()
         self._create_main_area()
-        
+
         # Данные
         self.assets_data: Dict[str, List] = {
             "currency": [],
             "crypto": [],
             "stocks": []
         }
-        
-        # Текущая вкладка
+
+        # Текущая вкладка и режим
         self.current_view = "all"
-        
+        self.show_favorites_only = False
+
         # Загрузка данных
         self._load_data()
-        
+
         # Обработчик закрытия
         self.protocol("WM_DELETE_WINDOW", self._on_close)
-    
+
     def _apply_theme(self):
         """Применение темы из настроек"""
         theme = self.db.get_setting("theme", "dark")
@@ -212,18 +213,18 @@ class MainWindow(ctk.CTk):
             ctk.set_appearance_mode("System")
         else:
             ctk.set_appearance_mode(theme)
-        
+
         ctk.set_default_color_theme("blue")
-    
+
     def _get_text_color(self):
         """Получение цвета текста в зависимости от темы"""
         return self.light_text if ctk.get_appearance_mode() == "Light" else self.dark_text
-    
+
     def _create_sidebar(self):
         """Создание боковой панели"""
-        sidebar = ctk.CTkFrame(self, width=200, corner_radius=0)
+        sidebar = ctk.CTkFrame(self, width=220, corner_radius=0)
         sidebar.pack(side="left", fill="y")
-        
+
         # Логотип
         logo = ctk.CTkLabel(
             sidebar,
@@ -231,12 +232,15 @@ class MainWindow(ctk.CTk):
             font=ctk.CTkFont(size=24, weight="bold"),
             text_color=self._get_text_color()
         )
-        logo.pack(pady=30)
-        
+        logo.pack(pady=20)
+
         # Кнопки навигации
         nav_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
         nav_frame.pack(fill="x", padx=10)
-        
+
+        self.btn_all = self._create_nav_button(
+            nav_frame, "📊 Все активы", self._show_all, pack=True
+        )
         self.btn_currency = self._create_nav_button(
             nav_frame, "💱 Валюты", self._show_currency, pack=True
         )
@@ -246,14 +250,23 @@ class MainWindow(ctk.CTk):
         self.btn_stocks = self._create_nav_button(
             nav_frame, "📈 Акции", self._show_stocks, pack=True
         )
-        self.btn_all = self._create_nav_button(
-            nav_frame, "📊 Всё", self._show_all, pack=True
-        )
-        
+
         # Разделитель
         separator = ctk.CTkFrame(sidebar, height=2, fg_color="gray")
-        separator.pack(fill="x", pady=20, padx=10)
-        
+        separator.pack(fill="x", pady=15, padx=10)
+
+        # Кнопка "Только избранное"
+        self.fav_filter_btn = ctk.CTkButton(
+            sidebar,
+            text="⭐ Избранное",
+            command=self._toggle_favorites_filter,
+            fg_color="transparent",
+            border_width=1,
+            hover_color="#fbbf24",
+            text_color=self._get_text_color()
+        )
+        self.fav_filter_btn.pack(pady=10, padx=10)
+
         # Кнопка добавления актива
         add_btn = ctk.CTkButton(
             sidebar,
@@ -262,7 +275,7 @@ class MainWindow(ctk.CTk):
             hover_color="#22c55e"
         )
         add_btn.pack(pady=10, padx=10)
-        
+
         # Кнопка настроек
         settings_btn = ctk.CTkButton(
             sidebar,
@@ -274,7 +287,7 @@ class MainWindow(ctk.CTk):
             text_color=self._get_text_color()
         )
         settings_btn.pack(pady=10, padx=10)
-        
+
         # Кнопка обновления
         refresh_btn = ctk.CTkButton(
             sidebar,
@@ -284,18 +297,18 @@ class MainWindow(ctk.CTk):
             text_color=self._get_text_color()
         )
         refresh_btn.pack(pady=10, padx=10)
-        
+
         # Избранное
         ctk.CTkLabel(
             sidebar,
             text="Избранное ⭐",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=self._get_text_color()
-        ).pack(pady=(20, 10))
-        
+        ).pack(pady=(15, 10))
+
         self.favorites_frame = ctk.CTkScrollableFrame(sidebar, fg_color="transparent")
         self.favorites_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
+
         # Статус бар
         self.status_label = ctk.CTkLabel(
             sidebar,
@@ -304,7 +317,7 @@ class MainWindow(ctk.CTk):
             text_color="gray"
         )
         self.status_label.pack(side="bottom", pady=10)
-    
+
     def _create_nav_button(self, parent, text, command, pack=False):
         """Создание кнопки навигации"""
         btn = ctk.CTkButton(
@@ -319,14 +332,14 @@ class MainWindow(ctk.CTk):
         if pack:
             btn.pack(fill="x", pady=5)
         return btn
-    
+
     def _create_main_area(self):
         """Создание основной области"""
         # Верхняя панель
         top_bar = ctk.CTkFrame(self, height=60, corner_radius=0)
         top_bar.pack(side="top", fill="x")
         top_bar.pack_propagate(False)
-        
+
         self.title_label = ctk.CTkLabel(
             top_bar,
             text="Обзор активов",
@@ -334,7 +347,7 @@ class MainWindow(ctk.CTk):
             text_color=self._get_text_color()
         )
         self.title_label.pack(side="left", padx=20, pady=20)
-        
+
         self.last_update_label = ctk.CTkLabel(
             top_bar,
             text="",
@@ -342,54 +355,54 @@ class MainWindow(ctk.CTk):
             text_color="gray"
         )
         self.last_update_label.pack(side="right", padx=20, pady=20)
-        
+
         # Основная область с прокруткой
         self.main_frame = ctk.CTkScrollableFrame(self, corner_radius=0)
         self.main_frame.pack(side="top", fill="both", expand=True)
-        
+
         # Контейнеры для типов активов
         self.currency_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         self.crypto_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         self.stocks_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-    
+
     def _load_data(self):
         """Загрузка данных о активах"""
         self.status_label.configure(text="Загрузка...")
-        
+
         def fetch_data():
             try:
                 # Валюты - получаем все доступные
                 self.assets_data["currency"] = self.currency_service.get_all_rates()
-                
+
                 # Криптовалюты - получаем больше монет
                 self.assets_data["crypto"] = self.crypto_service.get_crypto_list(
-                    ["bitcoin", "ethereum", "binancecoin", "solana", "ripple", 
+                    ["bitcoin", "ethereum", "binancecoin", "solana", "ripple",
                      "cardano", "dogecoin", "polkadot", "tron", "avalanche"]
                 )
-                
+
                 # Акции
                 self.assets_data["stocks"] = self.stock_service.get_stocks(
                     ["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", "META", "AMZN", "NFLX"]
                 )
-                
+
                 # Обновление GUI в главном потоке
                 self.after(0, self._update_gui)
-                
+
             except Exception as e:
                 print(f"Ошибка загрузки данных: {e}")
                 self.after(0, lambda: self.status_label.configure(text="Ошибка!"))
-        
+
         # Запуск в отдельном потоке
         thread = threading.Thread(target=fetch_data, daemon=True)
         thread.start()
-    
+
     def _update_gui(self):
         """Обновление GUI"""
         # Очистка фреймов
         for frame in [self.currency_frame, self.crypto_frame, self.stocks_frame]:
             for widget in frame.winfo_children():
                 widget.destroy()
-        
+
         # Создание виджетов
         self._create_asset_widgets(
             self.currency_frame,
@@ -406,15 +419,15 @@ class MainWindow(ctk.CTk):
             self.assets_data["stocks"],
             "stocks"
         )
-        
+
         # Обновление избранного
         self._update_favorites()
-        
+
         # Обновление метки времени
         now = datetime.now().strftime("%H:%M:%S")
         self.last_update_label.configure(text=f"Обновлено: {now}")
         self.status_label.configure(text="Готов")
-        
+
         # Показ текущей вкладки
         if self.current_view == "currency":
             self._show_currency()
@@ -424,7 +437,7 @@ class MainWindow(ctk.CTk):
             self._show_stocks()
         else:
             self._show_all()
-    
+
     def _create_asset_widgets(self, parent, assets, asset_type):
         """Создание виджетов активов"""
         if not assets:
@@ -434,32 +447,49 @@ class MainWindow(ctk.CTk):
                 text_color="gray"
             ).pack(pady=20)
             return
-        
+
+        # Фильтрация избранных если включен режим
+        if self.show_favorites_only:
+            filtered_assets = []
+            for asset in assets:
+                symbol = getattr(asset, 'code', getattr(asset, 'symbol', ''))
+                if self.db.is_favorite(asset_type, symbol):
+                    filtered_assets.append(asset)
+            assets = filtered_assets
+
+            if not assets:
+                ctk.CTkLabel(
+                    parent,
+                    text="Нет избранных активов",
+                    text_color="gray"
+                ).pack(pady=20)
+                return
+
         # Заголовок секции
         titles = {
             "currency": "💱 Валюты",
             "crypto": "₿ Криптовалюты",
             "stocks": "📈 Акции"
         }
-        
+
         ctk.CTkLabel(
             parent,
             text=titles.get(asset_type, ""),
             font=ctk.CTkFont(size=16, weight="bold"),
             text_color=self._get_text_color()
         ).pack(anchor="w", pady=(10, 5))
-        
+
         # Сетка для виджетов
         grid_frame = ctk.CTkFrame(parent, fg_color="transparent")
         grid_frame.pack(fill="x")
-        
+
         for i, asset in enumerate(assets):
             row = i // 3
             col = i % 3
-            
+
             symbol = getattr(asset, 'code', getattr(asset, 'symbol', ''))
             is_fav = self.db.is_favorite(asset_type, symbol)
-            
+
             widget = AssetWidget(
                 grid_frame,
                 asset=asset,
@@ -468,30 +498,34 @@ class MainWindow(ctk.CTk):
                 corner_radius=10
             )
             widget.grid(row=row, column=col, padx=10, pady=10, sticky="ew")
-        
+
         grid_frame.grid_columnconfigure(0, weight=1)
         grid_frame.grid_columnconfigure(1, weight=1)
         grid_frame.grid_columnconfigure(2, weight=1)
-    
+
     def _toggle_favorite(self, asset_type: str, asset, is_favorite: bool):
         """Переключение статуса избранного"""
         symbol = getattr(asset, 'code', getattr(asset, 'symbol', ''))
         name = asset.name
-        
+
         if is_favorite:
             self.db.add_favorite(asset_type, symbol, name)
         else:
             self.db.remove_favorite(asset_type, symbol)
-        
+
         self._update_favorites()
-    
+
+        # Если в режиме "Только избранное", обновляем виджеты
+        if self.show_favorites_only:
+            self._update_gui()
+
     def _update_favorites(self):
         """Обновление списка избранного"""
         for widget in self.favorites_frame.winfo_children():
             widget.destroy()
-        
+
         favorites = self.db.get_favorites()
-        
+
         if not favorites:
             ctk.CTkLabel(
                 self.favorites_frame,
@@ -500,95 +534,155 @@ class MainWindow(ctk.CTk):
                 font=ctk.CTkFont(size=10)
             ).pack(pady=10)
             return
-        
-        for fav in favorites[:10]:  # Показываем до 10
+
+        for fav in favorites[:20]:  # Показываем до 20
+            # Фрейм для каждой записи
+            fav_item = ctk.CTkFrame(self.favorites_frame, fg_color="transparent")
+            fav_item.pack(fill="x", pady=2)
+
+            # Название актива
+            symbol_text = f"{fav['symbol'][:10]}"
             ctk.CTkLabel(
-                self.favorites_frame,
-                text=f"{fav['symbol'][:8]}",
+                fav_item,
+                text=symbol_text,
                 font=ctk.CTkFont(size=11),
                 text_color=self._get_text_color(),
                 anchor="w"
-            ).pack(fill="x", pady=2)
-    
+            ).pack(side="left", fill="x", expand=True)
+
+            # Кнопка удаления
+            remove_btn = ctk.CTkButton(
+                fav_item,
+                text="✕",
+                width=24,
+                height=20,
+                font=ctk.CTkFont(size=10),
+                fg_color="transparent",
+                hover_color="#ef4444",
+                text_color="gray",
+                command=lambda t=fav['asset_type'], s=fav['symbol']: self._remove_favorite(t, s)
+            )
+            remove_btn.pack(side="right")
+
+    def _remove_favorite(self, asset_type: str, symbol: str):
+        """Удаление актива из избранного"""
+        self.db.remove_favorite(asset_type, symbol)
+        self._update_favorites()
+
+        # Если в режиме "Только избранное", обновляем виджеты
+        if self.show_favorites_only:
+            self._update_gui()
+
+    def _toggle_favorites_filter(self):
+        """Переключение фильтра "Только избранное" """
+        self.show_favorites_only = not self.show_favorites_only
+
+        if self.show_favorites_only:
+            self.fav_filter_btn.configure(
+                text="⭐ Избранное (вкл)",
+                fg_color="#fbbf24",
+                text_color="#000000"
+            )
+        else:
+            self.fav_filter_btn.configure(
+                text="⭐ Избранное",
+                fg_color="transparent",
+                text_color=self._get_text_color()
+            )
+
+        # Обновляем отображение
+        self._update_gui()
+
     def _open_add_dialog(self):
         """Открытие диалога добавления актива"""
         AddAssetDialog(self, on_add=self._add_custom_asset)
-    
+
     def _add_custom_asset(self, asset_type: str, symbol: str):
         """Добавление пользовательского актива"""
         symbol = symbol.upper().strip()
-        
+
         if asset_type == "currency":
             currency = self.currency_service.get_currency(symbol)
             if currency:
                 self.db.add_favorite("currency", currency.code, currency.name)
                 self._update_favorites()
+                # Обновляем данные и GUI
                 self._load_data()
             else:
                 print(f"Валюта {symbol} не найдена")
-        
+
         elif asset_type == "crypto":
             crypto = self.crypto_service.get_crypto(symbol.lower())
             if crypto:
                 self.db.add_favorite("crypto", crypto.coin_id, crypto.name)
                 self._update_favorites()
+                # Обновляем данные и GUI
                 self._load_data()
             else:
                 print(f"Криптовалюта {symbol} не найдена")
-        
+
         elif asset_type == "stocks":
             stock = self.stock_service.get_stock(symbol)
             if stock:
                 self.db.add_favorite("stocks", stock.ticker, stock.name)
                 self._update_favorites()
-                self._load_data()
+                # Добавляем акцию в общий список
+                self.assets_data["stocks"].append(stock)
+                self._update_favorites()
+                self._update_gui()
             else:
                 print(f"Акция {symbol} не найдена")
-    
+
     def _show_currency(self):
         """Показать валюты"""
         self.current_view = "currency"
         self._clear_main()
         self.title_label.configure(text="💱 Валюты")
         self.currency_frame.pack(fill="both", expand=True, padx=20, pady=20)
-    
+
     def _show_crypto(self):
         """Показать криптовалюты"""
         self.current_view = "crypto"
         self._clear_main()
         self.title_label.configure(text="₿ Криптовалюты")
         self.crypto_frame.pack(fill="both", expand=True, padx=20, pady=20)
-    
+
     def _show_stocks(self):
         """Показать акции"""
         self.current_view = "stocks"
         self._clear_main()
         self.title_label.configure(text="📈 Акции")
         self.stocks_frame.pack(fill="both", expand=True, padx=20, pady=20)
-    
+
     def _show_all(self):
         """Показать всё"""
         self.current_view = "all"
+        self.show_favorites_only = False
+        self.fav_filter_btn.configure(
+            text="⭐ Избранное",
+            fg_color="transparent",
+            text_color=self._get_text_color()
+        )
         self._clear_main()
         self.title_label.configure(text="Обзор активов")
         self.currency_frame.pack(fill="x", padx=20, pady=(20, 10))
         self.crypto_frame.pack(fill="x", padx=20, pady=10)
         self.stocks_frame.pack(fill="x", padx=20, pady=(10, 20))
-    
+
     def _clear_main(self):
         """Очистка основной области"""
         for frame in [self.currency_frame, self.crypto_frame, self.stocks_frame]:
             frame.pack_forget()
-    
+
     def _open_settings(self):
         """Открытие окна настроек"""
         SettingsWindow(self, self.db, on_save=self._on_settings_saved)
-    
+
     def _on_settings_saved(self):
         """Сохранение настроек"""
         self._apply_theme()
         self._load_data()
-    
+
     def _on_close(self):
         """Закрытие приложения"""
         self.db.close()
