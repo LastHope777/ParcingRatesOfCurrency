@@ -1,49 +1,83 @@
-import requests  # Импорт библиотеки requests
-from bs4 import BeautifulSoup  # Импорт класса BeautifulSoup из библиотеки BeautifulSoup
-import matplotlib.pyplot as plt  # Импорт библиотеки для построения графиков
+"""
+Asset Tracker - Трекер финансовых активов
+Валюты | Криптовалюты | Акции
 
-def get_currency_rates():
-    url = 'https://cbr.ru/currency_base/daily/'  # Задание URL-адреса страницы с курсами валют
-    response = requests.get(url)  # Отправка GET-запроса к указанному URL
+Версия: 1.0.0
+"""
 
-    if response.status_code != 200:  # Проверка успешности запроса (код 200 означает успех).
-        print(f"Ошибка: Невозможно получить доступ к странице. Код ошибки: {response.status_code}")
-        return None
+import sys
+import io
 
-    soup = BeautifulSoup(response.text, 'html.parser')  # Создание объекта BeautifulSoup для анализа HTML-кода страницы
-    table = soup.find('table', {'class': 'data'})  # Поиск таблицы с курсами валют на странице
+# Исправление кодировки для Windows
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-    if not table:  # Проверка наличия таблицы с курсами валют
-        print("Ошибка: Таблица с курсами валют не найдена на странице.")
-        return None
+from services.currency import CurrencyService
+from services.crypto import CryptoService
+from services.stocks import StockService
+from database.db_manager import DatabaseManager
+from config import DEFAULT_CURRENCIES, DEFAULT_CRYPTO, DEFAULT_STOCKS
 
-    currency_rates = {}  # Создание пустого словаря для хранения курсов валют
-    rows = table.find_all('tr')  # Поиск всех строк (строчек) в таблице
-    for row in rows[1:]:  # Цикл по всем строкам, начиная со второй (первая строка - заголовки)
-        columns = row.find_all('td')  # Поиск всех ячеек (столбцов) в текущей строке
-        if len(columns) >= 5:  # Проверка, что в текущей строке есть хотя бы 5 ячеек (необходимые данные)
-            currency_name = columns[1].text.strip()  # Получение названия валюты из второй ячейки и удаление пробелов
-            currency_rate = columns[4].text.strip()  # Получение курса валюты из пятой ячейки и удаление пробелов
-            currency_rates[currency_name] = currency_rate  # Добавление пары валюта-курс в словарь
 
-    return currency_rates  # Возврат словаря с курсами валют
+def main():
+    """Основная функция - демонстрация работы сервисов"""
+    print("=" * 50)
+    print("Asset Tracker - Демонстрация работы")
+    print("=" * 50)
+    
+    # Инициализация базы данных
+    db = DatabaseManager()
+    
+    # === Валюты ===
+    print("\nКурсы валют ЦБ РФ:")
+    print("-" * 30)
+    
+    currency_service = CurrencyService()
+    currencies = currency_service.get_currencies(DEFAULT_CURRENCIES)
+    
+    for curr in currencies:
+        print(f"  {curr.code}: {curr.price:.2f} RUB (номинал: {curr.nominal})")
+        db.add_favorite("currency", curr.code, curr.name)
+    
+    # === Криптовалюты ===
+    print("\nКурсы криптовалют:")
+    print("-" * 30)
+    
+    crypto_service = CryptoService()
+    cryptos = crypto_service.get_crypto_list(DEFAULT_CRYPTO)
+    
+    for crypto in cryptos:
+        change_str = f"{crypto.change_percent:+.2f}%" if crypto.change_percent else "N/A"
+        print(f"  {crypto.symbol}: ${crypto.price:.2f} ({change_str})")
+        db.add_favorite("crypto", crypto.coin_id, crypto.name)
+    
+    # === Акции ===
+    print("\nКотировки акций:")
+    print("-" * 30)
+    
+    stock_service = StockService()
+    stocks = stock_service.get_stocks(DEFAULT_STOCKS)
+    
+    for stock in stocks:
+        change_str = f"{stock.change_percent:+.2f}%" if stock.change_percent else "N/A"
+        print(f"  {stock.symbol}: ${stock.price:.2f} ({change_str})")
+        db.add_favorite("stocks", stock.ticker, stock.name)
+    
+    # === Избранные активы ===
+    print("\nИзбранные активы (сохранено в БД):")
+    print("-" * 30)
+    
+    favorites = db.get_favorites()
+    for fav in favorites:
+        print(f"  [{fav['asset_type']}] {fav['symbol']} - {fav['name']}")
+    
+    print("\n" + "=" * 50)
+    print("Демонстрация завершена!")
+    print("Данные сохранены в assets.db")
+    print("=" * 50)
+    
+    db.close()
+
 
 if __name__ == "__main__":
-    rates = get_currency_rates()  # Вызов функции get_currency_rates и сохранение результата в переменную rates
-    if rates:
-        print("Курсы валют Центрального банка России:")
-        for currency, rate in rates.items():
-            print(f"{currency}: {rate}")
-
-        # # Визуализация курсов валют с помощью графика
-        # currencies = list(rates.keys())  # Получение списка валют из ключей словаря
-        # rates_values = [float(rate.replace(',', '.')) for rate in rates.values()]  # Преобразование значений курсов валют из строк в числа типа float
-        # 
-        # plt.figure(figsize=(10, 6))  # Создание графика с указанным размером
-        # plt.bar(currencies, rates_values, color='blue')  # Построение столбчатой диаграммы
-        # plt.xlabel('Валюта')  # Название оси X
-        # plt.ylabel('Курс')  # Название оси Y
-        # plt.title('Курсы валют Центрального банка России')  # Заголовок графика
-        # plt.xticks(rotation=45)  # Поворот названий валют на оси X
-        # plt.tight_layout()  # Улучшение отображения графика (уменьшение перекрытий)
-        # plt.show()  # Отображение графика
+    main()
