@@ -24,7 +24,7 @@
 
 ```bash
 # Клонирование репозитория
-git clone https://github.com/YOUR_USERNAME/ParcingRatesOfCurrency.git
+git clone https://github.com/LastHope777/ParcingRatesOfCurrency.git
 cd ParcingRatesOfCurrency
 
 # Создание виртуального окружения
@@ -83,31 +83,19 @@ Pillow>=10.0.0
 - Российские акции могут не отображаться (ограничение Yahoo Finance)
 - При первом запуске возможна загрузка данных 5-10 секунд
 
-## 🗺️ Планы на будущее
-
-- [ ] Графики изменения курсов
-- [ ] Экспорт данных в CSV/Excel
-- [ ] Уведомления об изменении цены
-- [ ] Поддержка дополнительных бирж
-- [ ] Мобильная версия приложения
-
 ## 📄 Лицензия
 
 MIT License — см. файл [LICENSE](LICENSE) для деталей.
-
-## 🙏 Благодарности
-
-Благодарим за использование Asset Tracker! Если вам нравится проект, поставьте ⭐ на GitHub.
 
 ### Полезные ссылки
 
 - [Документация](README.md)
 - [Руководство по вкладу](CONTRIBUTING.md)
 - [История изменений](CHANGELOG.md)
-- [Сообщить об ошибке](https://github.com/YOUR_USERNAME/ParcingRatesOfCurrency/issues)
+- [Сообщить об ошибке](https://github.com/LastHope777/ParcingRatesOfCurrency/issues)
 
 ---
 
-**Скачали:** [счётчик загрузок]  
+
 **Дата релиза:** 12 марта 2024  
 **Сборка:** stable

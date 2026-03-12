@@ -38,7 +38,7 @@
 
 1. **Клонируйте репозиторий:**
 ```bash
-git clone https://github.com/YOUR_USERNAME/ParcingRatesOfCurrency.git
+git clone https://github.com/LastHope777/ParcingRatesOfCurrency.git
 cd ParcingRatesOfCurrency
 ```
 
@@ -185,29 +185,3 @@ Yahoo Finance ограничил доступ к российским бирже
 ## 📄 Лицензия
 
 Этот проект распространяется под лицензией MIT. См. файл [LICENSE](LICENSE) для деталей.
-
-## 🤝 Вклад в проект
-
-Приветствуются pull requests и issue reports! Для внесения изменений:
-
-1. Fork репозиторий
-2. Создайте feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit изменения (`git commit -m 'Add some AmazingFeature'`)
-4. Push в branch (`git push origin feature/AmazingFeature`)
-5. Откройте Pull Request
-
-## 📞 Контакты
-
-- **GitHub**: [Ваш профиль](https://github.com/YOUR_USERNAME)
-- **Email**: your.email@example.com
-
-## 🙏 Благодарности
-
-- [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) — современный UI фреймворк
-- [CoinGecko](https://www.coingecko.com/) — API криптовалют
-- [Yahoo Finance](https://finance.yahoo.com/) — данные об акциях
-- [ЦБ РФ](https://cbr.ru/) — курсы валют
-
----
-
-**Asset Tracker** © 2024. Сделано с ❤️ для трейдеров и инвесторов.
