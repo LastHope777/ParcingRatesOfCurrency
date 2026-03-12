@@ -20,20 +20,26 @@ from config import APP_NAME, APP_VERSION, APP_WIDTH, APP_HEIGHT, DEFAULT_CURRENC
 class AddAssetDialog(ctk.CTkToplevel):
     """Диалог добавления актива"""
     
-    def __init__(self, parent, asset_type: str, on_add: callable = None):
+    def __init__(self, parent, asset_type: str = None, on_add: callable = None):
         super().__init__(parent)
         
-        self.asset_type = asset_type
         self.on_add = on_add
         
-        titles = {
-            "currency": "Добавить валюту",
-            "crypto": "Добавить криптовалюту",
-            "stocks": "Добавить акцию"
-        }
+        # Если тип не указан, показываем выбор
+        if asset_type is None:
+            self.title("Добавить актив")
+            self.geometry("400x350")
+            self.asset_type = None
+        else:
+            self.asset_type = asset_type
+            titles = {
+                "currency": "Добавить валюту",
+                "crypto": "Добавить криптовалюту",
+                "stocks": "Добавить акцию"
+            }
+            self.title(titles.get(asset_type, "Добавить актив"))
         
-        self.title(titles.get(asset_type, "Добавить актив"))
-        self.geometry("400x300")
+        self.geometry("400x350")
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()
@@ -46,16 +52,42 @@ class AddAssetDialog(ctk.CTkToplevel):
     
     def _create_widgets(self):
         """Создание элементов"""
-        title = ctk.CTkLabel(
-            self,
-            text=f"Добавить {self.asset_type}",
-            font=ctk.CTkFont(size=18, weight="bold")
-        )
-        title.pack(pady=20)
+        # Если тип актива не выбран, показываем выбор типа
+        if self.asset_type is None:
+            title = ctk.CTkLabel(
+                self,
+                text="Выберите тип актива",
+                font=ctk.CTkFont(size=18, weight="bold")
+            )
+            title.pack(pady=20)
+            
+            # Кнопки выбора типа
+            ctk.CTkButton(
+                self,
+                text="💱 Валюта",
+                command=lambda: self._select_type("currency"),
+                width=300
+            ).pack(pady=10)
+            
+            ctk.CTkButton(
+                self,
+                text="₿ Криптовалюта",
+                command=lambda: self._select_type("crypto"),
+                width=300
+            ).pack(pady=10)
+            
+            ctk.CTkButton(
+                self,
+                text="📈 Акция",
+                command=lambda: self._select_type("stocks"),
+                width=300
+            ).pack(pady=10)
+            
+            return
         
         # Поле ввода
         input_frame = ctk.CTkFrame(self, fg_color="transparent")
-        input_frame.pack(fill="x", padx=20, pady=10)
+        input_frame.pack(fill="x", padx=20, pady=20)
         
         ctk.CTkLabel(
             input_frame,
@@ -106,6 +138,21 @@ class AddAssetDialog(ctk.CTkToplevel):
             width=120
         )
         cancel_btn.pack(side="left", padx=10)
+    
+    def _select_type(self, asset_type: str):
+        """Выбор типа актива"""
+        self.asset_type = asset_type
+        # Очистка окна
+        for widget in self.winfo_children():
+            widget.destroy()
+        # Пересоздание виджетов
+        titles = {
+            "currency": "Добавить валюту",
+            "crypto": "Добавить криптовалюту",
+            "stocks": "Добавить акцию"
+        }
+        self.title(titles.get(asset_type, "Добавить актив"))
+        self._create_widgets()
     
     def _add_asset(self):
         """Добавление актива"""
