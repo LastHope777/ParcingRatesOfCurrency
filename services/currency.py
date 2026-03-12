@@ -39,9 +39,12 @@ class CurrencyService:
             for row in rows:
                 columns = row.find_all("td")
                 if len(columns) >= 5:
-                    code = columns[0].text.strip()
-                    name = columns[1].text.strip()
+                    # Column 0: numeric code, Column 1: currency code, Column 2: nominal
+                    # Column 3: currency name, Column 4: rate
+                    numeric_code = columns[0].text.strip()
+                    code = columns[1].text.strip()  # Буквенный код (USD, EUR)
                     nominal = int(columns[2].text.strip().replace(",", ""))
+                    name = columns[3].text.strip()
                     rate_str = columns[4].text.strip().replace(",", ".")
                     
                     try:

@@ -24,15 +24,34 @@ class AssetWidget(ctk.CTkFrame):
         self.on_toggle_favorite = on_toggle_favorite
         self.is_favorite = is_favorite
         
-        self.configure(
-            corner_radius=10,
-            fg_color="#2b2b2b" if ctk.get_appearance_mode() == "Dark" else "#f5f5f5"
-        )
+        # Цвета
+        self.light_text = "#000000"
+        self.dark_text = "#FFFFFF"
+        self.light_bg = "#f5f5f5"
+        self.dark_bg = "#2b2b2b"
+        
+        self._update_colors()
         
         self._create_widgets()
     
+    def _update_colors(self):
+        """Обновление цветов в зависимости от темы"""
+        appearance = ctk.get_appearance_mode()
+        if appearance == "Light":
+            self.configure(fg_color=self.light_bg)
+            self.text_color = self.light_text
+            self.subtext_color = "#555555"
+        else:
+            self.configure(fg_color=self.dark_bg)
+            self.text_color = self.dark_text
+            self.subtext_color = "#AAAAAA"
+    
     def _create_widgets(self):
         """Создание элементов виджета"""
+        # Очистка старых виджетов
+        for widget in self.winfo_children():
+            widget.destroy()
+        
         # Верхняя панель с названием и кнопкой избранного
         top_frame = ctk.CTkFrame(self, fg_color="transparent")
         top_frame.pack(fill="x", padx=10, pady=(10, 5))
@@ -46,11 +65,12 @@ class AssetWidget(ctk.CTkFrame):
         )
         symbol_label.pack(side="left")
         
+        name_text = self.asset.name[:20] + "..." if len(self.asset.name) > 20 else self.asset.name
         name_label = ctk.CTkLabel(
             top_frame,
-            text=self.asset.name[:20] + "..." if len(self.asset.name) > 20 else self.asset.name,
+            text=name_text,
             font=ctk.CTkFont(size=12),
-            text_color="gray"
+            text_color=self.subtext_color
         )
         name_label.pack(side="left", padx=(10, 0))
         
@@ -64,6 +84,7 @@ class AssetWidget(ctk.CTkFrame):
             font=ctk.CTkFont(size=16),
             fg_color="transparent",
             hover_color="#3b82f6",
+            text_color=self.text_color,
             command=self._toggle_favorite
         )
         self.fav_button.pack(side="right")
@@ -72,10 +93,17 @@ class AssetWidget(ctk.CTkFrame):
         price_frame = ctk.CTkFrame(self, fg_color="transparent")
         price_frame.pack(fill="x", padx=10, pady=5)
         
+        # Форматирование цены
+        if self.asset.price > 1:
+            price_text = f"${self.asset.price:,.2f}"
+        else:
+            price_text = f"${self.asset.price:,.6f}"
+        
         price_label = ctk.CTkLabel(
             price_frame,
-            text=f"${self.asset.price:,.2f}" if self.asset.price > 1 else f"{self.asset.price:,.4f}",
-            font=ctk.CTkFont(size=20, weight="bold")
+            text=price_text,
+            font=ctk.CTkFont(size=20, weight="bold"),
+            text_color=self.text_color
         )
         price_label.pack(side="left")
         
@@ -96,7 +124,7 @@ class AssetWidget(ctk.CTkFrame):
             self,
             text=getattr(self.asset, 'source', 'Unknown'),
             font=ctk.CTkFont(size=10),
-            text_color="gray"
+            text_color=self.subtext_color
         )
         source_label.pack(anchor="w", padx=10, pady=(0, 10))
     
@@ -112,4 +140,5 @@ class AssetWidget(ctk.CTkFrame):
     def update_data(self, asset: Asset):
         """Обновление данных актива"""
         self.asset = asset
+        self._update_colors()
         self._create_widgets()

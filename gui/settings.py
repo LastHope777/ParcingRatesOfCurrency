@@ -17,11 +17,15 @@ class SettingsWindow(ctk.CTkToplevel):
         self.on_save = on_save
         
         self.title("Настройки ⚙️")
-        self.geometry("500x600")
+        self.geometry("500x650")
         self.resizable(False, False)
         
         self.transient(parent)
         self.grab_set()
+        
+        # Цвета для светлой темы
+        self.light_text = "#000000"
+        self.dark_text = "#FFFFFF"
         
         self._create_widgets()
     
@@ -46,7 +50,8 @@ class SettingsWindow(ctk.CTkToplevel):
         ctk.CTkLabel(
             theme_section,
             text="🎨 Тема оформления",
-            font=ctk.CTkFont(size=14, weight="bold")
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color=self.light_text if ctk.get_appearance_mode() == "Light" else self.dark_text
         ).pack(anchor="w")
         
         self.theme_var = ctk.StringVar(value=self.db.get_setting("theme", "dark"))
@@ -82,7 +87,8 @@ class SettingsWindow(ctk.CTkToplevel):
         ctk.CTkLabel(
             interval_section,
             text="🔄 Интервал обновления (секунды)",
-            font=ctk.CTkFont(size=14, weight="bold")
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color=self.light_text if ctk.get_appearance_mode() == "Light" else self.dark_text
         ).pack(anchor="w")
         
         self.interval_var = ctk.StringVar(value=self.db.get_setting("refresh_interval", "60"))
@@ -111,7 +117,8 @@ class SettingsWindow(ctk.CTkToplevel):
         ctk.CTkLabel(
             visibility_section,
             text="👁️ Отображение типов активов",
-            font=ctk.CTkFont(size=14, weight="bold")
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color=self.light_text if ctk.get_appearance_mode() == "Light" else self.dark_text
         ).pack(anchor="w")
         
         self.show_currency = ctk.StringVar(
@@ -127,19 +134,22 @@ class SettingsWindow(ctk.CTkToplevel):
         ctk.CTkCheckBox(
             settings_frame,
             text="💱 Валюты",
-            variable=self.show_currency
+            variable=self.show_currency,
+            text_color=self.light_text if ctk.get_appearance_mode() == "Light" else self.dark_text
         ).pack(anchor="w", pady=5)
         
         ctk.CTkCheckBox(
             settings_frame,
             text="₿ Криптовалюты",
-            variable=self.show_crypto
+            variable=self.show_crypto,
+            text_color=self.light_text if ctk.get_appearance_mode() == "Light" else self.dark_text
         ).pack(anchor="w", pady=5)
         
         ctk.CTkCheckBox(
             settings_frame,
             text="📈 Акции",
-            variable=self.show_stocks
+            variable=self.show_stocks,
+            text_color=self.light_text if ctk.get_appearance_mode() == "Light" else self.dark_text
         ).pack(anchor="w", pady=5)
         
         # === Кнопки ===
@@ -150,7 +160,8 @@ class SettingsWindow(ctk.CTkToplevel):
             buttons_frame,
             text="Сохранить",
             command=self._save_settings,
-            width=120
+            width=120,
+            text_color=self.light_text if ctk.get_appearance_mode() == "Light" else self.dark_text
         )
         save_btn.pack(side="left", padx=10)
         
@@ -160,7 +171,8 @@ class SettingsWindow(ctk.CTkToplevel):
             command=self.destroy,
             fg_color="transparent",
             border_width=1,
-            width=120
+            width=120,
+            text_color=self.light_text if ctk.get_appearance_mode() == "Light" else self.dark_text
         )
         cancel_btn.pack(side="left", padx=10)
     

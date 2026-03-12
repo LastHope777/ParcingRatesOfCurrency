@@ -5,6 +5,7 @@
 import customtkinter as ctk
 from typing import Dict, List
 import threading
+from datetime import datetime
 
 from models.asset import Currency, Crypto, Stock
 from services.currency import CurrencyService
@@ -14,6 +15,104 @@ from database.db_manager import DatabaseManager
 from gui.widgets import AssetWidget
 from gui.settings import SettingsWindow
 from config import APP_NAME, APP_VERSION, APP_WIDTH, APP_HEIGHT, DEFAULT_CURRENCIES
+
+
+class AddAssetDialog(ctk.CTkToplevel):
+    """Диалог добавления актива"""
+    
+    def __init__(self, parent, asset_type: str, on_add: callable = None):
+        super().__init__(parent)
+        
+        self.asset_type = asset_type
+        self.on_add = on_add
+        
+        titles = {
+            "currency": "Добавить валюту",
+            "crypto": "Добавить криптовалюту",
+            "stocks": "Добавить акцию"
+        }
+        
+        self.title(titles.get(asset_type, "Добавить актив"))
+        self.geometry("400x300")
+        self.resizable(False, False)
+        self.transient(parent)
+        self.grab_set()
+        
+        # Цвета
+        self.light_text = "#000000"
+        self.dark_text = "#FFFFFF"
+        
+        self._create_widgets()
+    
+    def _create_widgets(self):
+        """Создание элементов"""
+        title = ctk.CTkLabel(
+            self,
+            text=f"Добавить {self.asset_type}",
+            font=ctk.CTkFont(size=18, weight="bold")
+        )
+        title.pack(pady=20)
+        
+        # Поле ввода
+        input_frame = ctk.CTkFrame(self, fg_color="transparent")
+        input_frame.pack(fill="x", padx=20, pady=10)
+        
+        ctk.CTkLabel(
+            input_frame,
+            text="Код/Символ:",
+            font=ctk.CTkFont(size=14)
+        ).pack(anchor="w")
+        
+        self.symbol_entry = ctk.CTkEntry(
+            input_frame,
+            placeholder_text="Например: USD, BTC, AAPL",
+            width=300
+        )
+        self.symbol_entry.pack(fill="x", pady=5)
+        
+        # Подсказка
+        hints = {
+            "currency": "Примеры: USD, EUR, CNY, GBP",
+            "crypto": "Примеры: bitcoin, ethereum, solana",
+            "stocks": "Примеры: AAPL, GOOGL, TSLA, GAZP.ME"
+        }
+        
+        hint_label = ctk.CTkLabel(
+            self,
+            text=hints.get(self.asset_type, ""),
+            font=ctk.CTkFont(size=11),
+            text_color="gray"
+        )
+        hint_label.pack(pady=5)
+        
+        # Кнопки
+        buttons_frame = ctk.CTkFrame(self, fg_color="transparent")
+        buttons_frame.pack(pady=20)
+        
+        add_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Добавить",
+            command=self._add_asset,
+            width=120
+        )
+        add_btn.pack(side="left", padx=10)
+        
+        cancel_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Отмена",
+            command=self.destroy,
+            fg_color="transparent",
+            border_width=1,
+            width=120
+        )
+        cancel_btn.pack(side="left", padx=10)
+    
+    def _add_asset(self):
+        """Добавление актива"""
+        symbol = self.symbol_entry.get().strip()
+        if symbol and self.on_add:
+            self.on_add(self.asset_type, symbol)
+            self.destroy()
 
 
 class MainWindow(ctk.CTk):
@@ -32,6 +131,10 @@ class MainWindow(ctk.CTk):
         self.crypto_service = CryptoService()
         self.stock_service = StockService()
         
+        # Цвета
+        self.light_text = "#000000"
+        self.dark_text = "#FFFFFF"
+        
         # Настройка темы
         self._apply_theme()
         
@@ -45,6 +148,9 @@ class MainWindow(ctk.CTk):
             "crypto": [],
             "stocks": []
         }
+        
+        # Текущая вкладка
+        self.current_view = "all"
         
         # Загрузка данных
         self._load_data()
@@ -62,6 +168,10 @@ class MainWindow(ctk.CTk):
         
         ctk.set_default_color_theme("blue")
     
+    def _get_text_color(self):
+        """Получение цвета текста в зависимости от темы"""
+        return self.light_text if ctk.get_appearance_mode() == "Light" else self.dark_text
+    
     def _create_sidebar(self):
         """Создание боковой панели"""
         sidebar = ctk.CTkFrame(self, width=200, corner_radius=0)
@@ -71,7 +181,8 @@ class MainWindow(ctk.CTk):
         logo = ctk.CTkLabel(
             sidebar,
             text="💰 Asset\nTracker",
-            font=ctk.CTkFont(size=24, weight="bold")
+            font=ctk.CTkFont(size=24, weight="bold"),
+            text_color=self._get_text_color()
         )
         logo.pack(pady=30)
         
@@ -96,6 +207,15 @@ class MainWindow(ctk.CTk):
         separator = ctk.CTkFrame(sidebar, height=2, fg_color="gray")
         separator.pack(fill="x", pady=20, padx=10)
         
+        # Кнопка добавления актива
+        add_btn = ctk.CTkButton(
+            sidebar,
+            text="➕ Добавить",
+            command=self._open_add_dialog,
+            hover_color="#22c55e"
+        )
+        add_btn.pack(pady=10, padx=10)
+        
         # Кнопка настроек
         settings_btn = ctk.CTkButton(
             sidebar,
@@ -103,7 +223,8 @@ class MainWindow(ctk.CTk):
             command=self._open_settings,
             fg_color="transparent",
             border_width=1,
-            hover_color="#3b82f6"
+            hover_color="#3b82f6",
+            text_color=self._get_text_color()
         )
         settings_btn.pack(pady=10, padx=10)
         
@@ -112,15 +233,17 @@ class MainWindow(ctk.CTk):
             sidebar,
             text="🔄 Обновить",
             command=self._load_data,
-            hover_color="#22c55e"
+            hover_color="#22c55e",
+            text_color=self._get_text_color()
         )
         refresh_btn.pack(pady=10, padx=10)
         
-        # Активные виджеты
+        # Избранное
         ctk.CTkLabel(
             sidebar,
             text="Избранное ⭐",
-            font=ctk.CTkFont(size=12, weight="bold")
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=self._get_text_color()
         ).pack(pady=(20, 10))
         
         self.favorites_frame = ctk.CTkScrollableFrame(sidebar, fg_color="transparent")
@@ -143,7 +266,8 @@ class MainWindow(ctk.CTk):
             command=command,
             fg_color="transparent",
             anchor="w",
-            hover_color="#3b82f6"
+            hover_color="#3b82f6",
+            text_color=self._get_text_color()
         )
         if pack:
             btn.pack(fill="x", pady=5)
@@ -156,12 +280,13 @@ class MainWindow(ctk.CTk):
         top_bar.pack(side="top", fill="x")
         top_bar.pack_propagate(False)
         
-        title = ctk.CTkLabel(
+        self.title_label = ctk.CTkLabel(
             top_bar,
             text="Обзор активов",
-            font=ctk.CTkFont(size=20, weight="bold")
+            font=ctk.CTkFont(size=20, weight="bold"),
+            text_color=self._get_text_color()
         )
-        title.pack(side="left", padx=20, pady=20)
+        self.title_label.pack(side="left", padx=20, pady=20)
         
         self.last_update_label = ctk.CTkLabel(
             top_bar,
@@ -186,19 +311,18 @@ class MainWindow(ctk.CTk):
         
         def fetch_data():
             try:
-                # Валюты
-                self.assets_data["currency"] = self.currency_service.get_currencies(
-                    DEFAULT_CURRENCIES
-                )
+                # Валюты - получаем все доступные
+                self.assets_data["currency"] = self.currency_service.get_all_rates()
                 
-                # Криптовалюты
+                # Криптовалюты - получаем больше монет
                 self.assets_data["crypto"] = self.crypto_service.get_crypto_list(
-                    ["bitcoin", "ethereum", "binancecoin", "solana", "ripple"]
+                    ["bitcoin", "ethereum", "binancecoin", "solana", "ripple", 
+                     "cardano", "dogecoin", "polkadot", "tron", "avalanche"]
                 )
                 
                 # Акции
                 self.assets_data["stocks"] = self.stock_service.get_stocks(
-                    ["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA"]
+                    ["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", "META", "AMZN", "NFLX"]
                 )
                 
                 # Обновление GUI в главном потоке
@@ -214,8 +338,6 @@ class MainWindow(ctk.CTk):
     
     def _update_gui(self):
         """Обновление GUI"""
-        from datetime import datetime
-        
         # Очистка фреймов
         for frame in [self.currency_frame, self.crypto_frame, self.stocks_frame]:
             for widget in frame.winfo_children():
@@ -247,12 +369,11 @@ class MainWindow(ctk.CTk):
         self.status_label.configure(text="Готов")
         
         # Показ текущей вкладки
-        current = self._get_current_view()
-        if current == "currency":
+        if self.current_view == "currency":
             self._show_currency()
-        elif current == "crypto":
+        elif self.current_view == "crypto":
             self._show_crypto()
-        elif current == "stocks":
+        elif self.current_view == "stocks":
             self._show_stocks()
         else:
             self._show_all()
@@ -277,7 +398,8 @@ class MainWindow(ctk.CTk):
         ctk.CTkLabel(
             parent,
             text=titles.get(asset_type, ""),
-            font=ctk.CTkFont(size=16, weight="bold")
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=self._get_text_color()
         ).pack(anchor="w", pady=(10, 5))
         
         # Сетка для виджетов
@@ -288,7 +410,8 @@ class MainWindow(ctk.CTk):
             row = i // 3
             col = i % 3
             
-            is_fav = self.db.is_favorite(asset_type, getattr(asset, 'code', getattr(asset, 'symbol', '')))
+            symbol = getattr(asset, 'code', getattr(asset, 'symbol', ''))
+            is_fav = self.db.is_favorite(asset_type, symbol)
             
             widget = AssetWidget(
                 grid_frame,
@@ -336,32 +459,71 @@ class MainWindow(ctk.CTk):
                 self.favorites_frame,
                 text=f"{fav['symbol'][:8]}",
                 font=ctk.CTkFont(size=11),
+                text_color=self._get_text_color(),
                 anchor="w"
             ).pack(fill="x", pady=2)
     
-    def _get_current_view(self) -> str:
-        """Получение текущего представления"""
-        # Простая реализация - можно улучшить
-        return "all"
+    def _open_add_dialog(self):
+        """Открытие диалога добавления актива"""
+        AddAssetDialog(self, on_add=self._add_custom_asset)
+    
+    def _add_custom_asset(self, asset_type: str, symbol: str):
+        """Добавление пользовательского актива"""
+        symbol = symbol.upper().strip()
+        
+        if asset_type == "currency":
+            currency = self.currency_service.get_currency(symbol)
+            if currency:
+                self.db.add_favorite("currency", currency.code, currency.name)
+                self._update_favorites()
+                self._load_data()
+            else:
+                print(f"Валюта {symbol} не найдена")
+        
+        elif asset_type == "crypto":
+            crypto = self.crypto_service.get_crypto(symbol.lower())
+            if crypto:
+                self.db.add_favorite("crypto", crypto.coin_id, crypto.name)
+                self._update_favorites()
+                self._load_data()
+            else:
+                print(f"Криптовалюта {symbol} не найдена")
+        
+        elif asset_type == "stocks":
+            stock = self.stock_service.get_stock(symbol)
+            if stock:
+                self.db.add_favorite("stocks", stock.ticker, stock.name)
+                self._update_favorites()
+                self._load_data()
+            else:
+                print(f"Акция {symbol} не найдена")
     
     def _show_currency(self):
         """Показать валюты"""
+        self.current_view = "currency"
         self._clear_main()
+        self.title_label.configure(text="💱 Валюты")
         self.currency_frame.pack(fill="both", expand=True, padx=20, pady=20)
     
     def _show_crypto(self):
         """Показать криптовалюты"""
+        self.current_view = "crypto"
         self._clear_main()
+        self.title_label.configure(text="₿ Криптовалюты")
         self.crypto_frame.pack(fill="both", expand=True, padx=20, pady=20)
     
     def _show_stocks(self):
         """Показать акции"""
+        self.current_view = "stocks"
         self._clear_main()
+        self.title_label.configure(text="📈 Акции")
         self.stocks_frame.pack(fill="both", expand=True, padx=20, pady=20)
     
     def _show_all(self):
         """Показать всё"""
+        self.current_view = "all"
         self._clear_main()
+        self.title_label.configure(text="Обзор активов")
         self.currency_frame.pack(fill="x", padx=20, pady=(20, 10))
         self.crypto_frame.pack(fill="x", padx=20, pady=10)
         self.stocks_frame.pack(fill="x", padx=20, pady=(10, 20))
