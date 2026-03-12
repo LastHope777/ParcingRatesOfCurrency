@@ -15,7 +15,7 @@
 
 ## 📸 Скриншоты
 
-![Главное окно](https://via.placeholder.com/800x600.png?text=Asset+Tracker+Main+Window)
+<img width="1369" height="889" alt="image" src="https://github.com/user-attachments/assets/e8726564-7473-463c-ba57-32af429d7f31" />
 *Главное окно приложения с обзором всех активов*
 
 ## 🚀 Быстрый старт
