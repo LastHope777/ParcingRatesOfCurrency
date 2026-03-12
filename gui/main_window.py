@@ -182,6 +182,13 @@ class MainWindow(ctk.CTk):
         self.light_text = "#000000"
         self.dark_text = "#FFFFFF"
 
+        # Пользовательские активы
+        self.custom_assets: Dict[str, List] = {
+            "currency": [],
+            "crypto": [],
+            "stocks": []
+        }
+
         # Настройка темы
         self._apply_theme()
 
@@ -292,7 +299,7 @@ class MainWindow(ctk.CTk):
         refresh_btn = ctk.CTkButton(
             sidebar,
             text="🔄 Обновить",
-            command=self._load_data,
+            command=self._refresh_data,
             hover_color="#22c55e",
             text_color=self._get_text_color()
         )
@@ -372,18 +379,25 @@ class MainWindow(ctk.CTk):
         def fetch_data():
             try:
                 # Валюты - получаем все доступные
-                self.assets_data["currency"] = self.currency_service.get_all_rates()
+                all_currencies = self.currency_service.get_all_rates()
+                
+                # Добавляем пользовательские валюты
+                self.assets_data["currency"] = all_currencies + self.custom_assets["currency"]
 
                 # Криптовалюты - получаем больше монет
-                self.assets_data["crypto"] = self.crypto_service.get_crypto_list(
+                all_crypto = self.crypto_service.get_crypto_list(
                     ["bitcoin", "ethereum", "binancecoin", "solana", "ripple",
                      "cardano", "dogecoin", "polkadot", "tron", "avalanche"]
                 )
+                # Добавляем пользовательские криптовалюты
+                self.assets_data["crypto"] = all_crypto + self.custom_assets["crypto"]
 
                 # Акции
-                self.assets_data["stocks"] = self.stock_service.get_stocks(
+                all_stocks = self.stock_service.get_stocks(
                     ["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", "META", "AMZN", "NFLX"]
                 )
+                # Добавляем пользовательские акции
+                self.assets_data["stocks"] = all_stocks + self.custom_assets["stocks"]
 
                 # Обновление GUI в главном потоке
                 self.after(0, self._update_gui)
@@ -395,6 +409,13 @@ class MainWindow(ctk.CTk):
         # Запуск в отдельном потоке
         thread = threading.Thread(target=fetch_data, daemon=True)
         thread.start()
+
+    def _refresh_data(self):
+        """Обновление данных (перезагрузка с сервера)"""
+        # Сбрасываем пользовательские активы (они сохранены в БД как избранные)
+        # и загружаем всё заново
+        self.custom_assets = {"currency": [], "crypto": [], "stocks": []}
+        self._load_data()
 
     def _update_gui(self):
         """Обновление GUI"""
@@ -604,32 +625,43 @@ class MainWindow(ctk.CTk):
         if asset_type == "currency":
             currency = self.currency_service.get_currency(symbol)
             if currency:
-                self.db.add_favorite("currency", currency.code, currency.name)
-                self._update_favorites()
-                # Обновляем данные и GUI
-                self._load_data()
+                # Проверяем, нет ли уже такой валюты
+                exists = any(getattr(a, 'code', '') == currency.code for a in self.custom_assets["currency"])
+                if not exists:
+                    self.custom_assets["currency"].append(currency)
+                    self.db.add_favorite("currency", currency.code, currency.name)
+                    self._update_favorites()
+                    self._load_data()  # Перезагружаем все данные
+                else:
+                    print(f"Валюта {symbol} уже добавлена")
             else:
                 print(f"Валюта {symbol} не найдена")
 
         elif asset_type == "crypto":
             crypto = self.crypto_service.get_crypto(symbol.lower())
             if crypto:
-                self.db.add_favorite("crypto", crypto.coin_id, crypto.name)
-                self._update_favorites()
-                # Обновляем данные и GUI
-                self._load_data()
+                exists = any(getattr(a, 'symbol', '') == crypto.symbol for a in self.custom_assets["crypto"])
+                if not exists:
+                    self.custom_assets["crypto"].append(crypto)
+                    self.db.add_favorite("crypto", crypto.coin_id, crypto.name)
+                    self._update_favorites()
+                    self._load_data()
+                else:
+                    print(f"Криптовалюта {symbol} уже добавлена")
             else:
                 print(f"Криптовалюта {symbol} не найдена")
 
         elif asset_type == "stocks":
             stock = self.stock_service.get_stock(symbol)
             if stock:
-                self.db.add_favorite("stocks", stock.ticker, stock.name)
-                self._update_favorites()
-                # Добавляем акцию в общий список
-                self.assets_data["stocks"].append(stock)
-                self._update_favorites()
-                self._update_gui()
+                exists = any(getattr(a, 'symbol', '') == stock.symbol for a in self.custom_assets["stocks"])
+                if not exists:
+                    self.custom_assets["stocks"].append(stock)
+                    self.db.add_favorite("stocks", stock.ticker, stock.name)
+                    self._update_favorites()
+                    self._load_data()
+                else:
+                    print(f"Акция {symbol} уже добавлена")
             else:
                 print(f"Акция {symbol} не найдена")
 
